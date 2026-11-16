@@ -18,6 +18,7 @@ from .oem import detect_system
 from .dell import dell_driver_packs
 from .downloads import DownloadError, download_package
 from .agent import AgentError, submit_background, read_job
+from .approval import ApprovalError, download_approved
 
 LOGO = r'''
  _   _ ____   ____ ____  ___  ____  _____
@@ -79,6 +80,11 @@ def main(argv: list[str] | None = None) -> int:
     finder.add_argument('--consent-share', action='store_true', help='Send hardware IDs and update metadata to configured AI provider')
     job = sub.add_parser('ai-job', help='Read background AI job status or result')
     job.add_argument('job_id')
+    approved = sub.add_parser('download-approved', help='Download verified candidate from completed AI job')
+    approved.add_argument('job_id')
+    approved.add_argument('index', type=int)
+    approved.add_argument('--output-dir', default='driver-downloads')
+    approved.add_argument('--confirm', action='store_true')
     report = sub.add_parser('report', help='Save inventory as JSON')
     report.add_argument('--output', default='upgr8de-report.json')
     sub.add_parser('doctor', help='Check environment and OS compatibility')
@@ -93,6 +99,17 @@ def main(argv: list[str] | None = None) -> int:
         print(f'Platform: {platform.platform()}')
         print(f'Windows discovery supported: {platform.system() == "Windows"}')
         print('Mode: read-only; driver updates are never installed')
+        return 0
+    if args.command == 'download-approved':
+        if not args.confirm:
+            print('Error: --confirm required', file=sys.stderr)
+            return 2
+        try:
+            result = download_approved(args.job_id, args.index, args.output_dir)
+        except (ApprovalError, AgentError, DownloadError, OSError, KeyError) as exc:
+            print(f'Error: {exc}', file=sys.stderr)
+            return 1
+        print(json.dumps(result, indent=2))
         return 0
     if args.command == 'ai-job':
         try:
