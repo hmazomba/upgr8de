@@ -110,7 +110,9 @@ def main(argv: list[str] | None = None) -> int:
             devices = discover()
             offers = available_driver_offers()
             matches = match_offers(devices, offers['updates'])
-            evidence = {'matched': matches.get('matched', [])[:40], 'unmatched_offers': matches.get('unmatched', [])[:20], 'note': 'Windows Update evidence only; OEM catalogues not yet integrated into AI evidence.'}
+            from .oem import detect_system
+            system = detect_system()
+            evidence = {'system': system, 'matched': matches.get('matched', [])[:40], 'unmatched_offers': matches.get('unmatched', [])[:20], 'note': 'Windows Update matches plus best-effort direct Dell model-level catalogue research; no automatic download.'}
             result = submit_background(evidence)
         except (DiscoveryError, AgentError, OSError) as exc:
             print(f'Error: {exc}', file=sys.stderr)
