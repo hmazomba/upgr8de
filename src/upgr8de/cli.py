@@ -10,6 +10,7 @@ from pathlib import Path
 from . import __version__
 from .windows import DiscoveryError, discover
 from .vendors import support_candidates
+from .updates import available_driver_offers
 
 LOGO = r'''
  _   _ ____   ____ ____  ___  ____  _____
@@ -44,6 +45,8 @@ def main(argv: list[str] | None = None) -> int:
     lookup = sub.add_parser('lookup', help='Show official support portals for matching devices')
     lookup.add_argument('query', help='Device name or hardware-ID fragment')
     lookup.add_argument('--oem', help='Computer manufacturer (e.g. Dell, HP, Lenovo)')
+    updates = sub.add_parser('updates', help='Find driver updates offered by Windows Update (read-only)')
+    updates.add_argument('--json', action='store_true', help='Print full JSON with update IDs and metadata')
     report = sub.add_parser('report', help='Save inventory as JSON')
     report.add_argument('--output', default='upgr8de-report.json')
     sub.add_parser('doctor', help='Check environment and OS compatibility')
@@ -58,6 +61,22 @@ def main(argv: list[str] | None = None) -> int:
         print(f'Platform: {platform.platform()}')
         print(f'Windows discovery supported: {platform.system() == "Windows"}')
         print('Mode: read-only; driver updates are never installed')
+        return 0
+    if args.command == 'updates':
+        try:
+            result = available_driver_offers()
+        except DiscoveryError as exc:
+            print(f'Error: {exc}', file=sys.stderr)
+            return 1
+        if args.json:
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+        else:
+            print(f"Driver offers from {result['source']}:")
+            if not result['updates']:
+                print('No applicable uninstalled driver offers found in configured update service.')
+            for update in result['updates']:
+                print(f"- {update['title']} [ID: {update['update_id']}]")
+            print(result['note'])
         return 0
     try:
         devices = discover()
