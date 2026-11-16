@@ -83,10 +83,8 @@ def download_package(url: str, vendor: str, output_dir: str, *, sha256: str | No
         actual = digest.hexdigest()
         if sha256 and actual != sha256.lower():
             raise DownloadError("SHA-256 mismatch; discarded downloaded package")
-        # Exclusive creation avoids replacing a file created during transfer.
-        with open(final, "xb") as output, open(temp_path, "rb") as source:
-            while chunk := source.read(1024 * 1024):
-                output.write(chunk)
+        # Atomic same-directory hard link: never expose partial destination or overwrite.
+        os.link(temp_path, final)
         return {
             "path": str(final), "vendor": vendor.lower(), "source_url": url,
             "size_bytes": size, "sha256": actual,
