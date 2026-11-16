@@ -127,3 +127,15 @@ upgr8de oem-catalog --provider dell
 ```
 
 The command retrieves Dell's official `DriverPackCatalog.cab` from `downloads.dell.com`, uses Windows' built-in `expand.exe`, and attempts exact model-name matching against the catalogue. This is **model-level deployment pack discovery**, not device-by-device driver matching or verified individual updates. Dell catalogue structures may use system IDs rather than full model names; some systems can therefore return zero matches. No packages are downloaded or installed. HP CMSL is no longer required by the active CLI. HP and Lenovo direct catalogue adapters and verified package downloads are pending. The legacy `hp.py` module is unused and should be removed in a cleanup.
+
+## Phase 9: Real package downloads (Dell, HP, Lenovo, ASUS)
+
+Download a specific package URL obtained from an official OEM catalogue or support page, without installing any OEM tool:
+
+```powershell
+upgr8de download "https://downloads.dell.com/FOLDER/example.cab" --vendor dell --output-dir .\drivers --confirm
+upgr8de download "https://downloads.dell.com/FOLDER/example.cab" --vendor dell --sha256 YOUR_TRUSTED_SHA256 --confirm
+upgr8de signature .\drivers\example.cab
+```
+
+Example URLs are placeholders. Allowed HTTPS download hosts: Dell `downloads.dell.com`, `dl.dell.com`; HP `ftp.hp.com`, `hpia.hpcloud.hp.com`; Lenovo `download.lenovo.com`; ASUS `dlcdnets.asus.com`. Redirects, credentials, non-HTTPS URLs, unsupported extensions and oversized packages are rejected. Default maximum size: 1 GiB. A temporary file is downloaded, hashed, and published without overwriting existing files. Without a trusted expected hash, status is `downloaded_unverified`; the source domain alone does not establish package authenticity. The command **never executes or installs** packages. This is a real network downloader, but it is **not yet an automatic per-device driver finder** for all four OEMs. Dell has a model-level catalogue pilot; HP, Lenovo and ASUS direct discovery remain future work. The unused HP CMSL adapter is legacy code and is not called by the CLI.
