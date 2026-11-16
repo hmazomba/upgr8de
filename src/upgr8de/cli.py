@@ -15,7 +15,7 @@ from .matching import match_offers
 from .catalogue import CatalogueError, load_catalogue, candidates, verify_file
 from .signatures import inspect_signature
 from .oem import detect_system
-from .hp import hp_softpaqs
+from .dell import dell_driver_packs
 
 LOGO = r'''
  _   _ ____   ____ ____  ___  ____  _____
@@ -65,8 +65,8 @@ def main(argv: list[str] | None = None) -> int:
     signature = sub.add_parser('signature', help='Inspect local Authenticode signature (Windows only)')
     signature.add_argument('file')
     sub.add_parser('oem', help='Detect PC manufacturer, model, OS and official support entry point')
-    oem_catalog = sub.add_parser('oem-catalog', help='Query supported live OEM metadata (HP CMSL currently)')
-    oem_catalog.add_argument('--provider', choices=['hp'], required=True)
+    oem_catalog = sub.add_parser('oem-catalog', help='Query direct OEM metadata without vendor software (Dell pilot)')
+    oem_catalog.add_argument('--provider', choices=['dell'], required=True)
     report = sub.add_parser('report', help='Save inventory as JSON')
     report.add_argument('--output', default='upgr8de-report.json')
     sub.add_parser('doctor', help='Check environment and OS compatibility')
@@ -85,7 +85,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == 'oem-catalog':
         try:
             system = detect_system()
-            result = hp_softpaqs(system.get('manufacturer') or '')
+            result = dell_driver_packs(system.get('manufacturer') or '', system.get('model') or '')
         except DiscoveryError as exc:
             print(f'Error: {exc}', file=sys.stderr)
             return 1
