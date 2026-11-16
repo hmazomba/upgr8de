@@ -4,14 +4,15 @@ from unittest.mock import patch
 from upgr8de.approval import ApprovalError, approved_candidate
 
 
+@patch("upgr8de.approval.verify", return_value=True)
 class ApprovalTests(unittest.TestCase):
     @patch("upgr8de.approval.read_job", return_value={"status": "completed", "verified_candidates": []})
-    def test_no_verified_candidates(self, _):
+    def test_no_verified_candidates(self, _, __):
         with self.assertRaises(ApprovalError):
             approved_candidate("a" * 32, 0)
 
     @patch("upgr8de.approval.read_job")
-    def test_ai_claim_cannot_authorize(self, read):
+    def test_ai_claim_cannot_authorize(self, read, _):
         read.return_value = {"status": "completed", "result": "download now",
                              "verified_candidates": [{"url": "https://downloads.dell.com/driver.cab",
                                                       "vendor": "dell", "status": "exact_hardware_os_match"}]}
@@ -19,7 +20,7 @@ class ApprovalTests(unittest.TestCase):
             approved_candidate("a" * 32, 0)
 
     @patch("upgr8de.approval.read_job")
-    def test_complete_verified_record(self, read):
+    def test_complete_verified_record(self, read, _):
         read.return_value = {"status": "completed", "verified_candidates": [{
             "url": "https://downloads.dell.com/driver.cab", "vendor": "dell",
             "status": "exact_hardware_os_match", "source_verified": True,
