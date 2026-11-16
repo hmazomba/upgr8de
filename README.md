@@ -83,3 +83,16 @@ upgr8de verify .\driver.zip --sha256 <expected-64-character-sha256>
 ```
 
 Only exact model, OS, architecture and hardware-ID matches are reported. Results remain **unverified catalogue entries**. `verify` checks local SHA-256 bytes only; it does not verify Authenticode signatures, publisher trust, or installation safety. The example hash and URL are placeholders, not real driver metadata. Live OEM catalogue adapters, trusted vendor source validation, package download, signature verification and rollback remain future work.
+
+## Phase 6: Local Authenticode inspection
+
+On Windows, inspect a downloaded driver package **without running it**:
+
+```powershell
+upgr8de signature .\driver.exe
+upgr8de verify .\driver.exe --sha256 YOUR_EXPECTED_SHA256
+```
+
+`signature` calls Windows `Get-AuthenticodeSignature` and reports status, certificate subject and thumbprint. A `Valid` result means Windows accepted the file's Authenticode signature under local trust policy; **it does not prove the signer is an approved OEM**, that the file is safe, or that it matches the device. Check publisher against independently sourced OEM information. Unsigned or invalid signatures return exit code 2. No installation occurs.
+
+**Remaining work:** Live authenticated OEM catalogue adapters (Dell/HP/Lenovo), safe vendor-specific download endpoints, allowlisted redirects, verified release metadata, OS/build applicability, rollback strategy and Windows integration testing. Avoid downloading from arbitrary URLs in untrusted catalogue JSON.
