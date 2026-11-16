@@ -13,6 +13,7 @@ from .vendors import support_candidates
 from .updates import available_driver_offers
 from .matching import match_offers
 from .catalogue import CatalogueError, load_catalogue, candidates, verify_file
+from .signatures import inspect_signature
 
 LOGO = r'''
  _   _ ____   ____ ____  ___  ____  _____
@@ -59,6 +60,8 @@ def main(argv: list[str] | None = None) -> int:
     verify = sub.add_parser('verify', help='Check local file SHA-256 without executing it')
     verify.add_argument('file')
     verify.add_argument('--sha256', required=True)
+    signature = sub.add_parser('signature', help='Inspect local Authenticode signature (Windows only)')
+    signature.add_argument('file')
     report = sub.add_parser('report', help='Save inventory as JSON')
     report.add_argument('--output', default='upgr8de-report.json')
     sub.add_parser('doctor', help='Check environment and OS compatibility')
@@ -74,6 +77,14 @@ def main(argv: list[str] | None = None) -> int:
         print(f'Windows discovery supported: {platform.system() == "Windows"}')
         print('Mode: read-only; driver updates are never installed')
         return 0
+    if args.command == 'signature':
+        try:
+            result = inspect_signature(args.file)
+        except (OSError, DiscoveryError) as exc:
+            print(f'Error: {exc}', file=sys.stderr)
+            return 1
+        print(json.dumps(result, indent=2))
+        return 0 if result['signature_valid'] else 2
     if args.command == 'verify':
         try:
             result = verify_file(args.file, args.sha256)
