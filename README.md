@@ -11,6 +11,7 @@
 - Search inventory by device name or hardware ID and generate safe vendor lookup phrases.
 - Parse PCI/USB hardware IDs and route to known official OEM/chip-vendor support portals with `lookup`.
 - Export local device reports as JSON.
+- Query configured Windows Update Agent for applicable, not-installed driver offers without downloading or installing.
 
 **No drivers are downloaded or installed.** `lookup` returns static official support landing pages, not live catalogue results, verified package matches or proof that an update exists. `search` produces lookup guidance, not verified driver URLs or update recommendations.
 
@@ -28,6 +29,8 @@ upgr8de inspect "PCI\VEN_"
 upgr8de search "Intel"
 upgr8de lookup "PCI\\VEN_8086" --oem HP
 upgr8de report --output inventory.json
+upgr8de updates
+upgr8de updates --json
 ```
 
 The CLI uses `powershell.exe` and `Get-CimInstance` for local hardware inventory. Driver versions and providers are inventory facts, not guarantees of the newest available driver. Hardware identifiers can be sensitive: review reports before sharing.
@@ -36,7 +39,7 @@ The CLI uses `powershell.exe` and `Get-CimInstance` for local hardware inventory
 
 1. Inventory and diagnostics (MVP).
 2. Hardware-ID parsing and official support portal routing (initial implementation complete); live OEM catalogue adapters still planned.
-3. Installed-vs-available version comparisons with provenance, OS and architecture matching.
+3. Windows Update Agent applicable driver offer discovery (implemented). Exact installed-vs-available version comparisons and independent OEM catalogue verification remain planned.
 4. User-reviewed downloads with signature and hash verification, rollback guidance, and explicit confirmation.
 5. Linux/macOS adapters, interactive terminal UI, packaging and expanded tests.
 
@@ -52,3 +55,7 @@ py -m unittest discover -s tests -v
 ```
 
 Apache-2.0 licensed.
+
+## Live update detection
+
+`upgr8de updates` calls Windows Update Agent's read-only `Search` API with `IsInstalled=0 and Type='Driver' and IsHidden=0`. It uses your system's configured Windows Update or WSUS service; the scan may use the network and take several minutes. `--json` includes update identifiers, revision and metadata. An offered driver is **not proof of a newer version** and may not be a complete list of OEM updates. No packages are downloaded or installed. A scan failure is reported as an error rather than as zero updates.
