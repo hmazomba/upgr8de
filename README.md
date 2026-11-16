@@ -12,6 +12,7 @@
 - Parse PCI/USB hardware IDs and route to known official OEM/chip-vendor support portals with `lookup`.
 - Export local device reports as JSON.
 - Query configured Windows Update Agent for applicable, not-installed driver offers without downloading or installing.
+- Match offers to local devices using exact hardware IDs and compare strictly numeric driver versions, flagging ambiguous matches for manual review.
 
 **No drivers are downloaded or installed.** `lookup` returns static official support landing pages, not live catalogue results, verified package matches or proof that an update exists. `search` produces lookup guidance, not verified driver URLs or update recommendations.
 
@@ -31,6 +32,8 @@ upgr8de lookup "PCI\\VEN_8086" --oem HP
 upgr8de report --output inventory.json
 upgr8de updates
 upgr8de updates --json
+upgr8de check
+upgr8de check --json
 ```
 
 The CLI uses `powershell.exe` and `Get-CimInstance` for local hardware inventory. Driver versions and providers are inventory facts, not guarantees of the newest available driver. Hardware identifiers can be sensitive: review reports before sharing.
@@ -39,7 +42,7 @@ The CLI uses `powershell.exe` and `Get-CimInstance` for local hardware inventory
 
 1. Inventory and diagnostics (MVP).
 2. Hardware-ID parsing and official support portal routing (initial implementation complete); live OEM catalogue adapters still planned.
-3. Windows Update Agent applicable driver offer discovery (implemented). Exact installed-vs-available version comparisons and independent OEM catalogue verification remain planned.
+3. Windows Update Agent driver offer discovery, exact hardware-ID matching and numeric version comparison (implemented). Live independent OEM catalogue verification remains planned.
 4. User-reviewed downloads with signature and hash verification, rollback guidance, and explicit confirmation.
 5. Linux/macOS adapters, interactive terminal UI, packaging and expanded tests.
 
@@ -59,3 +62,7 @@ Apache-2.0 licensed.
 ## Live update detection
 
 `upgr8de updates` calls Windows Update Agent's read-only `Search` API with `IsInstalled=0 and Type='Driver' and IsHidden=0`. It uses your system's configured Windows Update or WSUS service; the scan may use the network and take several minutes. `--json` includes update identifiers, revision and metadata. An offered driver is **not proof of a newer version** and may not be a complete list of OEM updates. No packages are downloaded or installed. A scan failure is reported as an error rather than as zero updates.
+
+## Device-to-offer matching
+
+`upgr8de check` inventories local PnP hardware IDs, retrieves applicable driver offers from the configured Windows Update service, then assigns an offer to a device only when exactly one device has an identical hardware ID. Missing and ambiguous IDs remain unmatched. `version_comparison` can be `newer`, `same`, `older`, or `unknown` and only compares numeric dotted versions. **A newer number is not proof of a safer or more compatible driver.** All matches are for manual review; the tool does not download, verify package signatures, or install. Windows Update is not a complete manufacturer catalogue, and OEM-specific adapters are not yet implemented.
