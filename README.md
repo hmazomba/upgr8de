@@ -117,3 +117,13 @@ upgr8de oem-catalog --provider hp
 This calls HP CMSL `Get-SoftpaqList` for the current platform and displays returned SoftPaq metadata. It can contact HP's services; no SoftPaq packages are downloaded or installed by upgr8de. Metadata fields depend on CMSL version. Treat the result as a catalogue listing, **not** a verified driver update or device-level compatibility decision. No silent fallback to generic driver sites.
 
 Dell's current commercial client catalogues use CAB index/platform catalogues, while Lenovo's Update Retriever uses its own repository/update metadata workflow. Neither is wired up as a live adapter yet. Secure package downloading, trusted metadata verification and rollback remain pending.
+
+## Phase 9: Standalone OEM catalogue direction
+
+**No vendor utility installation required.** The live `oem-catalog` command now supports a direct Dell catalogue pilot:
+
+```powershell
+upgr8de oem-catalog --provider dell
+```
+
+The command retrieves Dell's official `DriverPackCatalog.cab` from `downloads.dell.com`, uses Windows' built-in `expand.exe`, and attempts exact model-name matching against the catalogue. This is **model-level deployment pack discovery**, not device-by-device driver matching or verified individual updates. Dell catalogue structures may use system IDs rather than full model names; some systems can therefore return zero matches. No packages are downloaded or installed. HP CMSL is no longer required by the active CLI. HP and Lenovo direct catalogue adapters and verified package downloads are pending. The legacy `hp.py` module is unused and should be removed in a cleanup.
