@@ -12,7 +12,7 @@ class DiscoveryError(RuntimeError):
 
 POWERSHELL = r'''
 $ErrorActionPreference = 'Stop'
-$devices = @(Get-CimInstance Win32_PnPEntity | Select-Object Name, PNPDeviceID, DeviceID, Manufacturer, Service, Status, ConfigManagerErrorCode)
+$devices = @(Get-CimInstance Win32_PnPEntity | Select-Object Name, PNPDeviceID, DeviceID, HardwareID, Manufacturer, Service, Status, ConfigManagerErrorCode)
 $drivers = @(Get-CimInstance Win32_PnPSignedDriver | Select-Object DeviceID, DriverVersion, DriverDate, DriverProviderName, InfName, IsSigned)
 [pscustomobject]@{ devices = $devices; drivers = $drivers } | ConvertTo-Json -Depth 6 -Compress
 '''
@@ -58,6 +58,7 @@ def discover() -> list[dict]:
         records.append({
             'name': device.get('Name') or 'Unknown device',
             'hardware_id': device_id,
+            'hardware_ids': [str(x) for x in (device.get('HardwareID') or [])] if isinstance(device.get('HardwareID'), list) else ([str(device['HardwareID'])] if device.get('HardwareID') else []),
             'manufacturer': device.get('Manufacturer'),
             'status': device.get('Status'),
             'problem_code': error_code,
