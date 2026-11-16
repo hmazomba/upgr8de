@@ -59,6 +59,8 @@ def submit_background(evidence: dict, *, catalogue_path: str | None = None,
                                                  evidence.get("devices", []), evidence.get("system", {}))
         payload["verified_candidates"] = verified
         payload["catalogue_sha256"] = catalogue_sha256.lower()
+        from .job_integrity import seal
+        seal(payload)
     with path.open("x", encoding="utf-8") as file:
         json.dump(payload, file, ensure_ascii=False)
     try:
