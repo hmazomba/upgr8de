@@ -17,6 +17,7 @@ from .signatures import inspect_signature
 from .oem import detect_system
 from .dell import dell_driver_packs
 from .downloads import DownloadError, download_package
+from .agent import AgentError, submit_background, read_job
 
 LOGO = r'''
  _   _ ____   ____ ____  ___  ____  _____
@@ -74,6 +75,10 @@ def main(argv: list[str] | None = None) -> int:
     download.add_argument('--output-dir', default='driver-downloads')
     download.add_argument('--sha256', help='Expected SHA-256 from independently trusted OEM metadata')
     download.add_argument('--confirm', action='store_true', help='Explicitly authorize network download')
+    finder = sub.add_parser('find-driver', help='Launch opt-in background AI analysis of local Windows Update matches')
+    finder.add_argument('--consent-share', action='store_true', help='Send hardware IDs and update metadata to configured AI provider')
+    job = sub.add_parser('ai-job', help='Read background AI job status or result')
+    job.add_argument('job_id')
     report = sub.add_parser('report', help='Save inventory as JSON')
     report.add_argument('--output', default='upgr8de-report.json')
     sub.add_parser('doctor', help='Check environment and OS compatibility')
@@ -88,6 +93,29 @@ def main(argv: list[str] | None = None) -> int:
         print(f'Platform: {platform.platform()}')
         print(f'Windows discovery supported: {platform.system() == "Windows"}')
         print('Mode: read-only; driver updates are never installed')
+        return 0
+    if args.command == 'ai-job':
+        try:
+            result = read_job(args.job_id)
+        except (AgentError, OSError, ValueError) as exc:
+            print(f'Error: {exc}', file=sys.stderr)
+            return 1
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return 0
+    if args.command == 'find-driver':
+        if not args.consent_share:
+            print('Error: --consent-share required; hardware IDs and Windows Update metadata will be sent to AI provider', file=sys.stderr)
+            return 2
+        try:
+            devices = discover()
+            offers = available_driver_offers()
+            matches = match_offers(devices, offers['updates'])
+            evidence = {'matched': matches.get('matched', [])[:40], 'unmatched_offers': matches.get('unmatched', [])[:20], 'note': 'Windows Update evidence only; OEM catalogues not yet integrated into AI evidence.'}
+            result = submit_background(evidence)
+        except (DiscoveryError, AgentError, OSError) as exc:
+            print(f'Error: {exc}', file=sys.stderr)
+            return 1
+        print(json.dumps(result, indent=2))
         return 0
     if args.command == 'download':
         if not args.confirm:
