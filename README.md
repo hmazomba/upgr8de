@@ -159,3 +159,12 @@ Use any compatible `/chat/completions` backend; no Python SDK required. HTTP is 
 ## Phase 11: Guarded AI OEM research tools
 
 `find-driver --consent-share` now also detects the system OEM/model. Its detached worker performs best-effort direct Dell deployment-pack catalogue research and supplies those observations to the OpenAI-compatible model. Results are model-level leads, not exact hardware/OS matches. The worker records `oem_research` in its job file. No autonomous download occurs: `download_candidate` requires independent user approval, trusted SHA-256 and exact hardware/OS match status. The existing `download --confirm` command remains available for manually reviewed official URLs. HP/Lenovo/ASUS direct catalogue adapters, reliable Dell device-level matching, and agent tool-calling loops remain unimplemented. Research is background, but initial Windows Update inventory still runs synchronously before job submission.
+
+## Phase 12: Job-bound download approval gate
+
+```powershell
+upgr8de ai-job YOUR_JOB_ID
+upgr8de download-approved YOUR_JOB_ID 0 --confirm
+```
+
+This command is intentionally **fail-closed**. It accepts only completed jobs with independently verified, exact hardware/OS compatible candidates, a trusted SHA-256 and an allowlisted OEM URL. AI-written recommendations never qualify as proof. **Current worker deliberately produces an empty `verified_candidates` list**, so this command will refuse downloads until real OEM catalogue adapters provide trustworthy, independently validated package metadata. For immediate manually reviewed downloads, use `upgr8de download URL --vendor dell --confirm`. Full four-OEM discovery and matching is NOT implemented yet.
