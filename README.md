@@ -66,3 +66,20 @@ Apache-2.0 licensed.
 ## Device-to-offer matching
 
 `upgr8de check` inventories local PnP hardware IDs, retrieves applicable driver offers from the configured Windows Update service, then assigns an offer to a device only when exactly one device has an identical hardware ID. Missing and ambiguous IDs remain unmatched. `version_comparison` can be `newer`, `same`, `older`, or `unknown` and only compares numeric dotted versions. **A newer number is not proof of a safer or more compatible driver.** All matches are for manual review; the tool does not download, verify package signatures, or install. Windows Update is not a complete manufacturer catalogue, and OEM-specific adapters are not yet implemented.
+
+## Phase 5: Offline OEM catalogue review and file integrity
+
+This phase adds **local catalogue ingestion**, not live Dell/HP/Lenovo API integration. Catalogue JSON must be obtained and reviewed independently. An HTTPS URL in metadata is **not** proof of an official vendor source. No network downloads or installation occur.
+
+Example schema (`catalogue.json`):
+
+```json
+{"schema_version":1,"packages":[{"vendor":"Example OEM","model":"Model X","hardware_id":"PCI\\VEN_8086&DEV_1234","version":"2.0","os":"Windows 11","architecture":"x64","url":"https://example.com/driver.zip","sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}]}
+```
+
+```powershell
+upgr8de catalogue catalogue.json --model "Model X" --os "Windows 11" --arch x64
+upgr8de verify .\driver.zip --sha256 <expected-64-character-sha256>
+```
+
+Only exact model, OS, architecture and hardware-ID matches are reported. Results remain **unverified catalogue entries**. `verify` checks local SHA-256 bytes only; it does not verify Authenticode signatures, publisher trust, or installation safety. The example hash and URL are placeholders, not real driver metadata. Live OEM catalogue adapters, trusted vendor source validation, package download, signature verification and rollback remain future work.
