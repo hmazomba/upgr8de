@@ -180,3 +180,7 @@ upgr8de download-approved JOB_ID 0 --confirm
 ```
 
 The catalogue SHA-256 must be obtained from a trustworthy independent source; a checksum stored in the same untrusted catalogue is not proof of OEM authenticity. The package hash from the pinned catalogue is enforced on download. This is **not yet live verified OEM catalogue discovery** and still requires a reviewed catalogue. No installation occurs.
+
+## Phase 14: Tamper-evident job approval records
+
+When a pinned catalogue produces verified candidates, upgr8de seals the job's candidate records and catalogue digest with a local HMAC-SHA256 key in `~/.upgr8de/jobs/.approval-key`. `download-approved` rejects absent or changed seals before using any package URL or hash. This guards against accidental/manual job-file edits; it **does not** defend against malware or an attacker with the same user's filesystem access, who can read the key. Protect the key and job directory with OS access controls. Existing pre-Phase-14 jobs lack seals and cannot be approved. Live authenticated four-OEM catalogue verification is still outstanding.
