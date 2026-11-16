@@ -77,6 +77,8 @@ def main(argv: list[str] | None = None) -> int:
     download.add_argument('--sha256', help='Expected SHA-256 from independently trusted OEM metadata')
     download.add_argument('--confirm', action='store_true', help='Explicitly authorize network download')
     finder = sub.add_parser('find-driver', help='Launch opt-in background AI analysis of local Windows Update matches')
+    finder.add_argument('--catalogue', help='Local reviewed OEM catalogue JSON for deterministic matching')
+    finder.add_argument('--catalogue-sha256', help='Catalogue SHA-256 obtained independently of catalogue file')
     finder.add_argument('--consent-share', action='store_true', help='Send hardware IDs and update metadata to configured AI provider')
     job = sub.add_parser('ai-job', help='Read background AI job status or result')
     job.add_argument('job_id')
@@ -129,8 +131,10 @@ def main(argv: list[str] | None = None) -> int:
             matches = match_offers(devices, offers['updates'])
             from .oem import detect_system
             system = detect_system()
-            evidence = {'system': system, 'matched': matches.get('matched', [])[:40], 'unmatched_offers': matches.get('unmatched', [])[:20], 'note': 'Windows Update matches plus best-effort direct Dell model-level catalogue research; no automatic download.'}
-            result = submit_background(evidence)
+            if bool(args.catalogue) != bool(args.catalogue_sha256):
+                raise AgentError('--catalogue and --catalogue-sha256 must be supplied together')
+            evidence = {'system': system, 'devices': devices, 'matched': matches.get('matched', [])[:40], 'unmatched_offers': matches.get('unmatched', [])[:20], 'note': 'Windows Update matches plus best-effort direct Dell model-level catalogue research; no automatic download.'}
+            result = submit_background(evidence, catalogue_path=args.catalogue, catalogue_sha256=args.catalogue_sha256)
         except (DiscoveryError, AgentError, OSError) as exc:
             print(f'Error: {exc}', file=sys.stderr)
             return 1
