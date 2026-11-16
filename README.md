@@ -139,3 +139,19 @@ upgr8de signature .\drivers\example.cab
 ```
 
 Example URLs are placeholders. Allowed HTTPS download hosts: Dell `downloads.dell.com`, `dl.dell.com`; HP `ftp.hp.com`, `hpia.hpcloud.hp.com`; Lenovo `download.lenovo.com`; ASUS `dlcdnets.asus.com`. Redirects, credentials, non-HTTPS URLs, unsupported extensions and oversized packages are rejected. Default maximum size: 1 GiB. A temporary file is downloaded, hashed, and published without overwriting existing files. Without a trusted expected hash, status is `downloaded_unverified`; the source domain alone does not establish package authenticity. The command **never executes or installs** packages. This is a real network downloader, but it is **not yet an automatic per-device driver finder** for all four OEMs. Dell has a model-level catalogue pilot; HP, Lenovo and ASUS direct discovery remain future work. The unused HP CMSL adapter is legacy code and is not called by the CLI.
+
+## Phase 10: Background AI driver research (OpenAI-compatible)
+
+The `find-driver` command first collects installed hardware IDs and applicable Windows Update driver offers, matches them locally, then **spawns a detached background AI process**. CLI exits after job submission. AI analyses only supplied evidence and must not invent driver sources or install/download anything. OEM catalogues are **not yet fed to the AI**; this is an initial evidence-based recommendation feature, not complete autonomous driver discovery.
+
+Set provider configuration in PowerShell (example; use your own model/provider):
+
+```powershell
+$env:UPGR8DE_AI_BASE_URL = 'https://api.openai.com/v1'
+$env:UPGR8DE_AI_MODEL = 'YOUR_MODEL_ID'
+$env:UPGR8DE_AI_API_KEY = 'YOUR_API_KEY'
+upgr8de find-driver --consent-share
+upgr8de ai-job JOB_ID_FROM_PREVIOUS_COMMAND
+```
+
+Use any compatible `/chat/completions` backend; no Python SDK required. HTTP is refused except explicit loopback opt-in via `UPGR8DE_AI_ALLOW_HTTP_LOCAL=1`. Job files live in `~/.upgr8de/jobs` (or `UPGR8DE_JOB_DIR`), containing submitted hardware/update metadata and results. Treat these as sensitive; remove them when no longer needed. The API key is read from environment and never stored in job files. **Explicit consent is required** because hardware identifiers and update metadata are transmitted to the configured provider. No background polling service, scheduled scans, autonomous downloading or installation is enabled. Run `ai-job` to poll status. Windows Update inventory happens before background submission and may take time. This feature has unit tests but requires Windows integration validation.
