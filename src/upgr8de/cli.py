@@ -15,6 +15,7 @@ from .matching import match_offers
 from .catalogue import CatalogueError, load_catalogue, candidates, verify_file
 from .signatures import inspect_signature
 from .oem import detect_system
+from .hp import hp_softpaqs
 
 LOGO = r'''
  _   _ ____   ____ ____  ___  ____  _____
@@ -64,6 +65,8 @@ def main(argv: list[str] | None = None) -> int:
     signature = sub.add_parser('signature', help='Inspect local Authenticode signature (Windows only)')
     signature.add_argument('file')
     sub.add_parser('oem', help='Detect PC manufacturer, model, OS and official support entry point')
+    oem_catalog = sub.add_parser('oem-catalog', help='Query supported live OEM metadata (HP CMSL currently)')
+    oem_catalog.add_argument('--provider', choices=['hp'], required=True)
     report = sub.add_parser('report', help='Save inventory as JSON')
     report.add_argument('--output', default='upgr8de-report.json')
     sub.add_parser('doctor', help='Check environment and OS compatibility')
@@ -78,6 +81,15 @@ def main(argv: list[str] | None = None) -> int:
         print(f'Platform: {platform.platform()}')
         print(f'Windows discovery supported: {platform.system() == "Windows"}')
         print('Mode: read-only; driver updates are never installed')
+        return 0
+    if args.command == 'oem-catalog':
+        try:
+            system = detect_system()
+            result = hp_softpaqs(system.get('manufacturer') or '')
+        except DiscoveryError as exc:
+            print(f'Error: {exc}', file=sys.stderr)
+            return 1
+        print(json.dumps({'system': system, **result}, indent=2, ensure_ascii=False))
         return 0
     if args.command == 'oem':
         try:
