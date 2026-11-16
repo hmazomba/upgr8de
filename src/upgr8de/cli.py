@@ -16,6 +16,7 @@ from .catalogue import CatalogueError, load_catalogue, candidates, verify_file
 from .signatures import inspect_signature
 from .oem import detect_system
 from .dell import dell_driver_packs
+from .downloads import DownloadError, download_package
 
 LOGO = r'''
  _   _ ____   ____ ____  ___  ____  _____
@@ -67,6 +68,12 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser('oem', help='Detect PC manufacturer, model, OS and official support entry point')
     oem_catalog = sub.add_parser('oem-catalog', help='Query direct OEM metadata without vendor software (Dell pilot)')
     oem_catalog.add_argument('--provider', choices=['dell'], required=True)
+    download = sub.add_parser('download', help='Download OEM package from allowlisted official host; never install')
+    download.add_argument('url', help='Direct OEM HTTPS package URL')
+    download.add_argument('--vendor', required=True, choices=['dell', 'hp', 'lenovo', 'asus'])
+    download.add_argument('--output-dir', default='driver-downloads')
+    download.add_argument('--sha256', help='Expected SHA-256 from independently trusted OEM metadata')
+    download.add_argument('--confirm', action='store_true', help='Explicitly authorize network download')
     report = sub.add_parser('report', help='Save inventory as JSON')
     report.add_argument('--output', default='upgr8de-report.json')
     sub.add_parser('doctor', help='Check environment and OS compatibility')
@@ -81,6 +88,17 @@ def main(argv: list[str] | None = None) -> int:
         print(f'Platform: {platform.platform()}')
         print(f'Windows discovery supported: {platform.system() == "Windows"}')
         print('Mode: read-only; driver updates are never installed')
+        return 0
+    if args.command == 'download':
+        if not args.confirm:
+            print('Error: --confirm required for network download', file=sys.stderr)
+            return 2
+        try:
+            result = download_package(args.url, args.vendor, args.output_dir, sha256=args.sha256)
+        except DownloadError as exc:
+            print(f'Error: {exc}', file=sys.stderr)
+            return 1
+        print(json.dumps(result, indent=2))
         return 0
     if args.command == 'oem-catalog':
         try:
