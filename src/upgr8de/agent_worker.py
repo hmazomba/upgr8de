@@ -34,6 +34,9 @@ def run(path: Path) -> None:
     try:
         settings = config()
         evidence = job.pop("evidence")
+        verified = job.get("verified_candidates", [])
+        evidence["verified_candidate_summary"] = [{k: c.get(k) for k in ("vendor", "device", "hardware_id", "version", "comparison")} for c in verified[:30]]
+        evidence.pop("devices", None)
         system = evidence.get("system") or {}
         if system:
             job["status"] = "researching_oem"
@@ -69,7 +72,7 @@ def run(path: Path) -> None:
         answer = parsed["choices"][0]["message"]["content"]
         job["result"] = answer
         # Only deterministic verifier may populate verified_candidates; never trust AI output.
-        job["verified_candidates"] = []
+        job["verified_candidates"] = verified
         job["status"] = "completed"
     except (OSError, ValueError, KeyError, IndexError, TypeError, urllib.error.URLError) as exc:
         job["status"] = "failed"
