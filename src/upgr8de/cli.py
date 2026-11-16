@@ -9,6 +9,7 @@ from pathlib import Path
 
 from . import __version__
 from .windows import DiscoveryError, discover
+from .vendors import support_candidates
 
 LOGO = r'''
  _   _ ____   ____ ____  ___  ____  _____
@@ -40,6 +41,9 @@ def main(argv: list[str] | None = None) -> int:
     inspect.add_argument('query', help='Device name or hardware-ID fragment')
     search = sub.add_parser('search', help='Provide safe lookup guidance (no downloads)')
     search.add_argument('query', help='Device name or hardware-ID fragment')
+    lookup = sub.add_parser('lookup', help='Show official support portals for matching devices')
+    lookup.add_argument('query', help='Device name or hardware-ID fragment')
+    lookup.add_argument('--oem', help='Computer manufacturer (e.g. Dell, HP, Lenovo)')
     report = sub.add_parser('report', help='Save inventory as JSON')
     report.add_argument('--output', default='upgr8de-report.json')
     sub.add_parser('doctor', help='Check environment and OS compatibility')
@@ -64,12 +68,15 @@ def main(argv: list[str] | None = None) -> int:
         _print_devices(devices)
     elif args.command == 'missing':
         _print_devices([d for d in devices if d['missing_driver']])
-    elif args.command in ('inspect', 'search'):
+    elif args.command in ('inspect', 'search', 'lookup'):
         matches = [d for d in devices if args.query.casefold() in (str(d['name']) + ' ' + str(d['hardware_id'])).casefold()]
         if not matches:
             print('No matching devices found.')
             return 2
-        print(json.dumps(matches, indent=2, ensure_ascii=False))
+        if args.command == 'lookup':
+            print(json.dumps([support_candidates(item, args.oem) for item in matches], indent=2, ensure_ascii=False))
+        else:
+            print(json.dumps(matches, indent=2, ensure_ascii=False))
         if args.command == 'search':
             print('\nResearch exact hardware ID on device manufacturer or OEM official support site.')
             for item in matches:
