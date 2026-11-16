@@ -11,6 +11,7 @@ from . import __version__
 from .windows import DiscoveryError, discover
 from .vendors import support_candidates
 from .updates import available_driver_offers
+from .matching import match_offers
 
 LOGO = r'''
  _   _ ____   ____ ____  ___  ____  _____
@@ -47,6 +48,8 @@ def main(argv: list[str] | None = None) -> int:
     lookup.add_argument('--oem', help='Computer manufacturer (e.g. Dell, HP, Lenovo)')
     updates = sub.add_parser('updates', help='Find driver updates offered by Windows Update (read-only)')
     updates.add_argument('--json', action='store_true', help='Print full JSON with update IDs and metadata')
+    check = sub.add_parser('check', help='Match Windows Update offers to installed hardware IDs')
+    check.add_argument('--json', action='store_true', help='Print detailed matching evidence')
     report = sub.add_parser('report', help='Save inventory as JSON')
     report.add_argument('--output', default='upgr8de-report.json')
     sub.add_parser('doctor', help='Check environment and OS compatibility')
@@ -61,6 +64,22 @@ def main(argv: list[str] | None = None) -> int:
         print(f'Platform: {platform.platform()}')
         print(f'Windows discovery supported: {platform.system() == "Windows"}')
         print('Mode: read-only; driver updates are never installed')
+        return 0
+    if args.command == 'check':
+        try:
+            devices = discover()
+            offers = available_driver_offers()
+        except DiscoveryError as exc:
+            print(f'Error: {exc}', file=sys.stderr)
+            return 1
+        result = match_offers(devices, offers['updates'])
+        if args.json:
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+        else:
+            print(f"Exact device matches: {len(result['matched'])}; unassigned offers: {len(result['unmatched'])}")
+            for entry in result['matched']:
+                print(f"- {entry['device']['name']}: {entry['device'].get('driver_version') or '?'} -> {entry['offer'].get('driver_version') or '?'} ({entry['version_comparison']}; manual review)")
+            print(result['note'])
         return 0
     if args.command == 'updates':
         try:
