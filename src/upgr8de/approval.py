@@ -4,6 +4,7 @@ from __future__ import annotations
 import re
 
 from .agent import read_job
+from .job_integrity import verify
 from .downloads import download_package, validate_source
 
 
@@ -15,6 +16,8 @@ def approved_candidate(job_id: str, candidate_index: int) -> dict:
     if candidate_index < 0:
         raise ApprovalError("Invalid candidate index")
     job = read_job(job_id)
+    if not verify(job):
+        raise ApprovalError("Job candidate integrity seal missing or invalid")
     if job.get("status") != "completed":
         raise ApprovalError("AI job not complete")
     candidates = job.get("verified_candidates", [])
