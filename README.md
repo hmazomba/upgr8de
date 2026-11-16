@@ -104,3 +104,16 @@ upgr8de oem
 ```
 
 Uses read-only Windows CIM queries to identify manufacturer, model, SKU, OS version/build and architecture. Reports known official support portal links. It deliberately does **not** collect serial numbers or device UUIDs. This is a prerequisite for trustworthy OEM-specific catalogue queries, **not** a live catalogue adapter. Driver downloads and installation remain disabled.
+
+## Phase 8: Live HP OEM catalogue metadata (opt-in)
+
+On supported HP Windows systems, install the **HP Client Management Script Library (CMSL)** separately from HP's official distribution. upgr8de does not install dependencies automatically. Then run:
+
+```powershell
+upgr8de oem
+upgr8de oem-catalog --provider hp
+```
+
+This calls HP CMSL `Get-SoftpaqList` for the current platform and displays returned SoftPaq metadata. It can contact HP's services; no SoftPaq packages are downloaded or installed by upgr8de. Metadata fields depend on CMSL version. Treat the result as a catalogue listing, **not** a verified driver update or device-level compatibility decision. No silent fallback to generic driver sites.
+
+Dell's current commercial client catalogues use CAB index/platform catalogues, while Lenovo's Update Retriever uses its own repository/update metadata workflow. Neither is wired up as a live adapter yet. Secure package downloading, trusted metadata verification and rollback remain pending.
