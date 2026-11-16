@@ -96,3 +96,11 @@ upgr8de verify .\driver.exe --sha256 YOUR_EXPECTED_SHA256
 `signature` calls Windows `Get-AuthenticodeSignature` and reports status, certificate subject and thumbprint. A `Valid` result means Windows accepted the file's Authenticode signature under local trust policy; **it does not prove the signer is an approved OEM**, that the file is safe, or that it matches the device. Check publisher against independently sourced OEM information. Unsigned or invalid signatures return exit code 2. No installation occurs.
 
 **Remaining work:** Live authenticated OEM catalogue adapters (Dell/HP/Lenovo), safe vendor-specific download endpoints, allowlisted redirects, verified release metadata, OS/build applicability, rollback strategy and Windows integration testing. Avoid downloading from arbitrary URLs in untrusted catalogue JSON.
+
+## Phase 7: Automatic OEM identity
+
+```powershell
+upgr8de oem
+```
+
+Uses read-only Windows CIM queries to identify manufacturer, model, SKU, OS version/build and architecture. Reports known official support portal links. It deliberately does **not** collect serial numbers or device UUIDs. This is a prerequisite for trustworthy OEM-specific catalogue queries, **not** a live catalogue adapter. Driver downloads and installation remain disabled.
