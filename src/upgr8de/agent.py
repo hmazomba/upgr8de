@@ -44,7 +44,8 @@ def job_root() -> Path:
     return root
 
 
-def submit_background(evidence: dict) -> dict:
+def submit_background(evidence: dict, *, catalogue_path: str | None = None,
+                      catalogue_sha256: str | None = None) -> dict:
     settings = config()
     raw = json.dumps(evidence, ensure_ascii=False)
     if len(raw.encode("utf-8")) > MAX_PAYLOAD:
@@ -52,6 +53,12 @@ def submit_background(evidence: dict) -> dict:
     job_id = uuid.uuid4().hex
     path = job_root() / f"{job_id}.json"
     payload = {"id": job_id, "status": "queued", "evidence": evidence, "model": settings["model"]}
+    if catalogue_path and catalogue_sha256:
+        from .verified_candidates import verified_catalogue_candidates
+        verified = verified_catalogue_candidates(catalogue_path, catalogue_sha256,
+                                                 evidence.get("devices", []), evidence.get("system", {}))
+        payload["verified_candidates"] = verified
+        payload["catalogue_sha256"] = catalogue_sha256.lower()
     with path.open("x", encoding="utf-8") as file:
         json.dump(payload, file, ensure_ascii=False)
     try:
