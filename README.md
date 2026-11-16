@@ -168,3 +168,15 @@ upgr8de download-approved YOUR_JOB_ID 0 --confirm
 ```
 
 This command is intentionally **fail-closed**. It accepts only completed jobs with independently verified, exact hardware/OS compatible candidates, a trusted SHA-256 and an allowlisted OEM URL. AI-written recommendations never qualify as proof. **Current worker deliberately produces an empty `verified_candidates` list**, so this command will refuse downloads until real OEM catalogue adapters provide trustworthy, independently validated package metadata. For immediate manually reviewed downloads, use `upgr8de download URL --vendor dell --confirm`. Full four-OEM discovery and matching is NOT implemented yet.
+
+## Phase 13: Functional verified candidate population
+
+A background job can now populate `verified_candidates` from a reviewed local OEM catalogue **only if its SHA-256 is supplied independently**. Matching requires exact hardware ID, PC model, OS caption, architecture, vendor, newer numeric driver version and allowlisted official download host. AI cannot create approved candidates.
+
+```powershell
+upgr8de find-driver --consent-share --catalogue .\reviewed-catalogue.json --catalogue-sha256 YOUR_INDEPENDENT_CATALOGUE_SHA256
+upgr8de ai-job JOB_ID
+upgr8de download-approved JOB_ID 0 --confirm
+```
+
+The catalogue SHA-256 must be obtained from a trustworthy independent source; a checksum stored in the same untrusted catalogue is not proof of OEM authenticity. The package hash from the pinned catalogue is enforced on download. This is **not yet live verified OEM catalogue discovery** and still requires a reviewed catalogue. No installation occurs.
