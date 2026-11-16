@@ -12,6 +12,7 @@ from .windows import DiscoveryError, discover
 from .vendors import support_candidates
 from .updates import available_driver_offers
 from .matching import match_offers
+from .catalogue import CatalogueError, load_catalogue, candidates, verify_file
 
 LOGO = r'''
  _   _ ____   ____ ____  ___  ____  _____
@@ -50,6 +51,14 @@ def main(argv: list[str] | None = None) -> int:
     updates.add_argument('--json', action='store_true', help='Print full JSON with update IDs and metadata')
     check = sub.add_parser('check', help='Match Windows Update offers to installed hardware IDs')
     check.add_argument('--json', action='store_true', help='Print detailed matching evidence')
+    catalogue = sub.add_parser('catalogue', help='Evaluate local OEM catalogue metadata; no downloads')
+    catalogue.add_argument('file', help='Locally reviewed catalogue JSON')
+    catalogue.add_argument('--model', required=True, help='Exact computer model')
+    catalogue.add_argument('--os', required=True, help='Exact OS label from catalogue')
+    catalogue.add_argument('--arch', required=True, help='Exact architecture label')
+    verify = sub.add_parser('verify', help='Check local file SHA-256 without executing it')
+    verify.add_argument('file')
+    verify.add_argument('--sha256', required=True)
     report = sub.add_parser('report', help='Save inventory as JSON')
     report.add_argument('--output', default='upgr8de-report.json')
     sub.add_parser('doctor', help='Check environment and OS compatibility')
@@ -64,6 +73,24 @@ def main(argv: list[str] | None = None) -> int:
         print(f'Platform: {platform.platform()}')
         print(f'Windows discovery supported: {platform.system() == "Windows"}')
         print('Mode: read-only; driver updates are never installed')
+        return 0
+    if args.command == 'verify':
+        try:
+            result = verify_file(args.file, args.sha256)
+        except (OSError, CatalogueError) as exc:
+            print(f'Error: {exc}', file=sys.stderr)
+            return 1
+        print(json.dumps(result, indent=2))
+        return 0 if result['matches'] else 2
+    if args.command == 'catalogue':
+        try:
+            packages = load_catalogue(args.file)
+            devices = discover()
+            result = candidates(devices, packages, model=args.model, os_name=args.os, architecture=args.arch)
+        except (OSError, ValueError, DiscoveryError) as exc:
+            print(f'Error: {exc}', file=sys.stderr)
+            return 1
+        print(json.dumps({'candidates': result, 'count': len(result), 'warning': 'Catalogue metadata is untrusted; package authenticity and compatibility NOT verified.'}, indent=2))
         return 0
     if args.command == 'check':
         try:
