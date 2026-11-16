@@ -68,6 +68,8 @@ def run(path: Path) -> None:
         parsed = json.loads(response_data)
         answer = parsed["choices"][0]["message"]["content"]
         job["result"] = answer
+        # Only deterministic verifier may populate verified_candidates; never trust AI output.
+        job["verified_candidates"] = []
         job["status"] = "completed"
     except (OSError, ValueError, KeyError, IndexError, TypeError, urllib.error.URLError) as exc:
         job["status"] = "failed"
