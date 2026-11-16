@@ -14,6 +14,7 @@ from .updates import available_driver_offers
 from .matching import match_offers
 from .catalogue import CatalogueError, load_catalogue, candidates, verify_file
 from .signatures import inspect_signature
+from .oem import detect_system
 
 LOGO = r'''
  _   _ ____   ____ ____  ___  ____  _____
@@ -62,6 +63,7 @@ def main(argv: list[str] | None = None) -> int:
     verify.add_argument('--sha256', required=True)
     signature = sub.add_parser('signature', help='Inspect local Authenticode signature (Windows only)')
     signature.add_argument('file')
+    sub.add_parser('oem', help='Detect PC manufacturer, model, OS and official support entry point')
     report = sub.add_parser('report', help='Save inventory as JSON')
     report.add_argument('--output', default='upgr8de-report.json')
     sub.add_parser('doctor', help='Check environment and OS compatibility')
@@ -76,6 +78,17 @@ def main(argv: list[str] | None = None) -> int:
         print(f'Platform: {platform.platform()}')
         print(f'Windows discovery supported: {platform.system() == "Windows"}')
         print('Mode: read-only; driver updates are never installed')
+        return 0
+    if args.command == 'oem':
+        try:
+            system = detect_system()
+        except DiscoveryError as exc:
+            print(f'Error: {exc}', file=sys.stderr)
+            return 1
+        from .vendors import OEM_SUPPORT
+        manufacturer = (system.get('manufacturer') or '').casefold()
+        portals = [{'name': name, 'url': url} for key, (name, url) in OEM_SUPPORT.items() if key in manufacturer]
+        print(json.dumps({'system': system, 'official_support_portals': portals[:1], 'live_catalogue_checked': False}, indent=2))
         return 0
     if args.command == 'signature':
         try:
